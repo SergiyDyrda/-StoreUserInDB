@@ -95,23 +95,30 @@ public class UserController {
     public ModelAndView pageOfUsers(@RequestParam("page") Integer page) {
         List<User> userList = userService.getAllUsers();
 
-        ModelAndView modelAndView = getPagedModelAndView(page, userList);
+        ModelAndView modelAndView = getPagedModelAndView(page, userList, false, null);
 
         return modelAndView;
     }
 
     @RequestMapping("searchUser")
-    public ModelAndView searchUser(@RequestParam String searchName) {
+    public ModelAndView searchUser(@RequestParam String searchName,
+                                   @RequestParam(required = false) Integer page) {
 
         if (searchName.equals("all")) return new ModelAndView("redirect:getAllUsers");
 
         List<User> userList = userService.getUsersByName(searchName);
 
-        ModelAndView pagedModelAndView = getPagedModelAndView(0, userList);
+        ModelAndView pagedModelAndView;
+        if (page == null) {
+            pagedModelAndView = getPagedModelAndView(0, userList, true, searchName);
+        } else {
+            pagedModelAndView = getPagedModelAndView(page, userList, true, searchName);
+        }
+
         return pagedModelAndView;
     }
 
-    private ModelAndView getPagedModelAndView(Integer page, List<User> userList) {
+    private ModelAndView getPagedModelAndView(Integer page, List<User> userList, boolean search, String searchName) {
         PagedListHolder<User> pagedListHolder = new PagedListHolder<>();
         pagedListHolder.setSource(userList);
         pagedListHolder.setPageSize(ROWS_PER_PAGE);
@@ -120,7 +127,14 @@ public class UserController {
         int startPage = Math.max(1, ((page - ROWS_PER_PAGE) >= 5 ? 5 : (page - ROWS_PER_PAGE)));
         int endPage = Math.min(startPage + 5, pagedListHolder.getPageCount());
 
-        ModelAndView modelAndView = new ModelAndView("userList");
+        ModelAndView modelAndView;
+        if (search) {
+            modelAndView = new ModelAndView("searchUserList");
+            modelAndView.addObject("searchName", searchName);
+        } else {
+            modelAndView = new ModelAndView("userList");
+        }
+
         modelAndView.addObject("userList", pagedListHolder.getPageList());
 
         modelAndView.addObject("currentPage", page);
